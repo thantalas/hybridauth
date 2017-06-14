@@ -1,22 +1,21 @@
 <?php
 // http://oauth.googlecode.com/svn/code/php/OAuth.php
-// rev 1276,	July 4, 2014
+// rev 1261,	Mar 29, 2011	morten.fangel
+// modified on Dec 29, 2019 to remove OAuth PECL conflict
 
 // vim: foldmethod=marker
 
 /* Generic exception class
  */
-if (!class_exists('OAuthException', false)) {
-  class OAuthException extends Exception {
-    // pass
-  }
+class OAuthExceptionPHP extends Exception {
+  // pass
 }
 
 class OAuthConsumer {
   public $key;
   public $secret;
 
-  function __construct($key, $secret, $callback_url=null) {
+  function __construct($key, $secret, $callback_url=NULL) {
     $this->key = $key;
     $this->secret = $secret;
     $this->callback_url = $callback_url;
@@ -247,7 +246,7 @@ class OAuthRequest {
   public static $version = '1.0';
   public static $POST_INPUT = 'php://input';
 
-  function __construct($http_method, $http_url, $parameters=null) {
+  function __construct($http_method, $http_url, $parameters=NULL) {
     $parameters = ($parameters) ? $parameters : array();
     $parameters = array_merge( OAuthUtil::parse_parameters(parse_url($http_url, PHP_URL_QUERY)), $parameters);
     $this->parameters = $parameters;
@@ -259,13 +258,10 @@ class OAuthRequest {
   /**
    * attempt to build up a request from what was passed to the server
    */
-  public static function from_request($http_method=null, $http_url=null, $parameters=null) {
+  public static function from_request($http_method=NULL, $http_url=NULL, $parameters=NULL) {
     $scheme = (!isset($_SERVER['HTTPS']) || $_SERVER['HTTPS'] != "on")
               ? 'http'
               : 'https';
-    if (isset($_SERVER['HTTP_X_FORWARDED_PROTO'])) {
-      $scheme = $_SERVER['HTTP_X_FORWARDED_PROTO'];
-    }
     $http_url = ($http_url) ? $http_url : $scheme .
                               '://' . $_SERVER['SERVER_NAME'] .
                               ':' .
@@ -314,7 +310,7 @@ class OAuthRequest {
   /**
    * pretty much a helper function to set up the request
    */
-  public static function from_consumer_and_token($consumer, $token, $http_method, $http_url, $parameters=null) {
+  public static function from_consumer_and_token($consumer, $token, $http_method, $http_url, $parameters=NULL) {
     $parameters = ($parameters) ?  $parameters : array();
     $defaults = array("oauth_version" => OAuthRequest::$version,
                       "oauth_nonce" => OAuthRequest::generate_nonce(),
@@ -451,7 +447,7 @@ class OAuthRequest {
     foreach ($this->parameters as $k => $v) {
       if (substr($k, 0, 5) != "oauth") continue;
       if (is_array($v)) {
-        throw new OAuthException('arrays not supported in headers');
+        throw new OAuthExceptionPHP('Arrays not supported in headers');
       }
       $out .= ($first) ? ' ' : ',';
       $out .= OAuthUtil::urlencode_rfc3986($k) .
@@ -529,7 +525,7 @@ class OAuthServer {
     $consumer = $this->get_consumer($request);
 
     // no token required for the initial token request
-    $token = null;
+    $token = NULL;
 
     $this->check_signature($request, $consumer, $token);
 
@@ -580,11 +576,11 @@ class OAuthServer {
     $version = $request->get_parameter("oauth_version");
     if (!$version) {
       // Service Providers MUST assume the protocol version to be 1.0 if this parameter is not present. 
-      // Chapter 7.0 ("Accessing Protected Ressources")
+      // Chapter 7.0 ("Accessing Protected Resources")
       $version = '1.0';
     }
     if ($version !== $this->version) {
-      throw new OAuthException("OAuth version '$version' not supported");
+      throw new OAuthExceptionPHP("OAuth version '$version' not supported");
     }
     return $version;
   }
@@ -595,17 +591,17 @@ class OAuthServer {
   private function get_signature_method($request) {
     $signature_method = $request instanceof OAuthRequest 
         ? $request->get_parameter("oauth_signature_method")
-        : null;
+        : NULL;
 
     if (!$signature_method) {
-      // According to chapter 7 ("Accessing Protected Ressources") the signature-method
+      // According to chapter 7 ("Accessing Protected Resources") the signature-method
       // parameter is required, and we can't just fallback to PLAINTEXT
-      throw new OAuthException('No signature method parameter. This parameter is required');
+      throw new OAuthExceptionPHP('No signature method parameter. This parameter is required');
     }
 
     if (!in_array($signature_method,
                   array_keys($this->signature_methods))) {
-      throw new OAuthException(
+      throw new OAuthExceptionPHP(
         "Signature method '$signature_method' not supported " .
         "try one of the following: " .
         implode(", ", array_keys($this->signature_methods))
@@ -620,15 +616,15 @@ class OAuthServer {
   private function get_consumer($request) {
     $consumer_key = $request instanceof OAuthRequest 
         ? $request->get_parameter("oauth_consumer_key")
-        : null;
+        : NULL;
 
     if (!$consumer_key) {
-      throw new OAuthException("Invalid consumer key");
+      throw new OAuthExceptionPHP("Invalid consumer key");
     }
 
     $consumer = $this->data_store->lookup_consumer($consumer_key);
     if (!$consumer) {
-      throw new OAuthException("Invalid consumer");
+      throw new OAuthExceptionPHP("Invalid consumer");
     }
 
     return $consumer;
@@ -640,13 +636,13 @@ class OAuthServer {
   private function get_token($request, $consumer, $token_type="access") {
     $token_field = $request instanceof OAuthRequest
          ? $request->get_parameter('oauth_token')
-         : null;
+         : NULL;
 
     $token = $this->data_store->lookup_token(
       $consumer, $token_type, $token_field
     );
     if (!$token) {
-      throw new OAuthException("Invalid $token_type token: $token_field");
+      throw new OAuthExceptionPHP("Invalid $token_type token: $token_field");
     }
     return $token;
   }
@@ -659,10 +655,10 @@ class OAuthServer {
     // this should probably be in a different method
     $timestamp = $request instanceof OAuthRequest
         ? $request->get_parameter('oauth_timestamp')
-        : null;
+        : NULL;
     $nonce = $request instanceof OAuthRequest
         ? $request->get_parameter('oauth_nonce')
-        : null;
+        : NULL;
 
     $this->check_timestamp($timestamp);
     $this->check_nonce($consumer, $token, $nonce, $timestamp);
@@ -678,7 +674,7 @@ class OAuthServer {
     );
 
     if (!$valid_sig) {
-      throw new OAuthException("Invalid signature");
+      throw new OAuthExceptionPHP("Invalid signature");
     }
   }
 
@@ -687,14 +683,14 @@ class OAuthServer {
    */
   private function check_timestamp($timestamp) {
     if( ! $timestamp )
-      throw new OAuthException(
+      throw new OAuthExceptionPHP(
         'Missing timestamp parameter. The parameter is required'
       );
     
     // verify that timestamp is recentish
     $now = time();
     if (abs($now - $timestamp) > $this->timestamp_threshold) {
-      throw new OAuthException(
+      throw new OAuthExceptionPHP(
         "Expired timestamp, yours $timestamp, ours $now"
       );
     }
@@ -705,7 +701,7 @@ class OAuthServer {
    */
   private function check_nonce($consumer, $token, $nonce, $timestamp) {
     if( ! $nonce )
-      throw new OAuthException(
+      throw new OAuthExceptionPHP(
         'Missing nonce parameter. The parameter is required'
       );
 
@@ -717,7 +713,7 @@ class OAuthServer {
       $timestamp
     );
     if ($found) {
-      throw new OAuthException("Nonce already used: $nonce");
+      throw new OAuthExceptionPHP("Nonce already used: $nonce");
     }
   }
 
@@ -851,7 +847,7 @@ class OAuthUtil {
       $value = isset($split[1]) ? OAuthUtil::urldecode_rfc3986($split[1]) : '';
 
       if (isset($parsed_parameters[$parameter])) {
-        // We have already recieved parameter(s) with this name, so add to the list
+        // We have already received parameter(s) with this name, so add to the list
         // of parameters with this name
 
         if (is_scalar($parsed_parameters[$parameter])) {
