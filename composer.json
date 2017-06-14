@@ -17,14 +17,6 @@
         "issues": "https://github.com/hybridauth/hybridauth/issues",
         "gitter": "https://gitter.im/hybridauth/hybridauth"
     },
-    "require": {
-        "php": ">=5.2.0",
-        "ext-curl": "*",
-        "facebook/graph-sdk": "^5.4"
-    },
-    "require-dev": {
-        "squizlabs/php_codesniffer": "2.*"
-    },
     "autoload": {
         "psr-0": {
             "Hybrid": "hybridauth/"
